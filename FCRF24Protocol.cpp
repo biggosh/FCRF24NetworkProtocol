@@ -11,11 +11,11 @@ void FCRF24Protocol::init(String name)
 	for (int j=0; j<255; j++)
 	{
 		routeKnownNode[j] = 0;
-		routeNextHope[j] = 0;
-		routePathLength[j] = 0;
+		routeNextHop[j] = 0;
+		// routePathLength[j] = 0;
 	}
-	gwNextHopeNode = 0;
-	gwNHopesToGw = 0;
+	gwNextHopNode = 0;
+	gwNHopsToGw = 0;
 	
 	rf24 = new RF24(7,8);
 	rf24->begin();
@@ -62,6 +62,9 @@ void FCRF24Protocol::sendManagementCommand(unsigned char command, String payload
 			break;
 		case REQ_ADDR:
 			sendRequestAddress();
+			break;
+		case TRACE_ROUTE:
+			sendTraceRoute();
 			break;
 	}
 	delete bName;
@@ -114,6 +117,33 @@ void FCRF24Protocol::sendRequestAddress()
 	delete command;
 }
 
+/*
+ * Byte 0: command type
+ * Byte 1: from address
+ * Byte 2: origin address
+ * Byte 3: destination address
+ * Byte 4: hop address
+ * Byte 5-21: 0x00
+ * Byte 22-31: nodeName
+ * 
+ */
+void FCRF24Protocol::sendTraceRoute(uint8_t destinationAddress)
+{
+	if (validAddress && nodeAddress>0)
+	{
+		char* command = getEmptyBuffer();
+		command[0] = TRACE_ROUTE;
+		command[1] = nodeAddress;
+		command[2] = nodeAddress;
+		command[3] = destinationAddress;
+		command[4] = gwNextHopNode;
+		int l = nodeName.length();
+		for (int j=0;j<l;j++)
+			command[32-l+j]=nodeName[j];
+		sendCommandGeneric(command);
+		delete command;
+	}
+}
 
 
 void FCRF24Protocol::receiveManagementCommand ( )
@@ -147,6 +177,10 @@ void FCRF24Protocol::receiveManagementCommand ( )
 		case REQ_ADDR:
 			receiveRequestAddress(command);
 			break;
+			
+		case TRACE_ROUTE:
+			receiveTraceRoute(command);
+			break;
 	}
 }
 
@@ -169,7 +203,7 @@ void FCRF24Protocol::receiveRequestNghAntenna ( char* command )
 		answer[1]=nodeAddress;
 		answer[2]=0;
 		answer[3]=1;
-		answer[30]=gwNHopesToGw;
+		answer[30]=gwNHopsToGw;
 		answer[31]=nodeAddress;
 		sendCommandGeneric(answer);
 		delete answer;
@@ -179,8 +213,8 @@ void FCRF24Protocol::receiveRequestNghAntenna ( char* command )
 		if (command[1]!='\0')
 		{
 			routeKnownNode[command[1]] = 1;
-			routePathLength[command[1]] = 1;
-			routeNextHope[command[1]] = command[1];
+			// routePathLength[command[1]] = 1;
+			routeNextHop[command[1]] = command[1];
 		}
 	}
 }
@@ -188,13 +222,13 @@ void FCRF24Protocol::receiveRequestNghAntenna ( char* command )
 void FCRF24Protocol::receiveAnswerNghAntenna ( char* command )
 {
 	routeKnownNode[command[31]] = 1;
-	routeNextHope[command[31]] = command[31];
-	routePathLength[command[31]] = command[3];
+	routeNextHop[command[31]] = command[31];
+	// routePathLength[command[31]] = command[3];
 	
-	if (command[30]<gwNHopesToGw)
+	if ((command[30]+1)<gwNHopsToGw)
 	{
-		gwNHopesToGw = command[30];
-		gwNextHopeNode = command[31];
+		gwNHopsToGw = command[30]+1;
+		gwNextHopNode = command[31];
 	}
 	hasNeighborhood = true;
 }
@@ -298,6 +332,21 @@ void FCRF24Protocol::receiveAnswerAddress ( char* command )
 		}
 	}
 }
+
+void FCRF24Protocol::receiveTraceRoute ( char* command )
+{
+	if (validAddress && nodeAddress >0)
+	{
+		if (nodeAddress == command[4])
+		{
+			routeNextHop[command[2]]=command[1];
+			command[1] = nodeAddress;
+			command[4] = gwNextHopNode;
+			sendCommandGeneric(command);
+		}
+	}
+}
+
 
 
 

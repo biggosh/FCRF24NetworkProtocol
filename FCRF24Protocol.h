@@ -4,6 +4,7 @@
 #define ANS_NGH_ANTENNA  0x02
 #define REQ_ADDR         0x03
 #define ANS_ADDR         0x04
+#define TRACE_ROUTE		 0x05
 
 #define MaxAddressRequests 10
 
@@ -17,11 +18,11 @@ class FCRF24Protocol
 		bool validAddress;
 		bool hasNeighborhood;
 		
-		char routeNextHope[255];
+		char routeNextHop[255];
 		char routeKnownNode[255];
-		char routePathLength[255];
-		byte gwNextHopeNode;
-		byte gwNHopesToGw;
+		// char routePathLength[255];
+		byte gwNextHopNode;
+		byte gwNHopsToGw;
 		long randomIDs[MaxAddressRequests];	// Max MaxAddressRequests requests per time
 	
 		byte* String2Byte(String stringa);
@@ -30,8 +31,10 @@ class FCRF24Protocol
 		
 		void sendRequestNghAntenna();
 		void sendRequestAddress();
+		void sendTraceRoute(uint8_t destinationAddress = 0);
 		void receiveRequestNghAntenna(char* command);
 		void receiveRequestAddress(char* command);
+		void receiveTraceRoute(char* command);
 		
 		void receiveAnswerNghAntenna(char* command);
 		void receiveAnswerAddress(char* command);
