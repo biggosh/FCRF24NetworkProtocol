@@ -152,9 +152,7 @@ void FCRF24Protocol::receiveManagementCommand ( )
 	rf24->read(command, 32);
 	Serial.print("Answer command: ");
 	for (int j=0; j<32; j++)
-	{
-		Serial.print(j);
-		Serial.print("=");
+	{;
 		Serial.print(command[j], HEX);
 		Serial.print("|");
 	}
