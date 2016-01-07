@@ -5,6 +5,8 @@
 #define REQ_ADDR         0x03
 #define ANS_ADDR         0x04
 
+#define MaxAddressRequests 10
+
 class FCRF24Protocol
 {
 	private:
@@ -13,24 +15,26 @@ class FCRF24Protocol
 		String broadcastName;
 		RF24 *rf24;
 		bool validAddress;
+		bool hasNeighborhood;
 		
 		char routeNextHope[255];
 		char routeKnownNode[255];
 		char routePathLength[255];
 		byte gwNextHopeNode;
 		byte gwNHopesToGw;
+		long randomIDs[MaxAddressRequests];	// Max MaxAddressRequests requests per time
 	
 		byte* String2Byte(String stringa);
 		inline char* getEmptyBuffer() { return new char[32](); }
-		void sendAnswerGeneric(char* message);
+		void sendCommandGeneric(char* message);
 		
 		void sendRequestNghAntenna();
-		void sendRequestAddress() {};
+		void sendRequestAddress();
 		void receiveRequestNghAntenna(char* command);
-		void receiveRequestAddress(char* command) {};
+		void receiveRequestAddress(char* command);
 		
 		void receiveAnswerNghAntenna(char* command);
-		void receiveAnswerAddress(char* command) {};
+		void receiveAnswerAddress(char* command);
 		
 	public:
 		FCRF24Protocol() {};
@@ -38,5 +42,8 @@ class FCRF24Protocol
 		uint8_t  dataAvailable();
 		void sendManagementCommand(unsigned char command, String payload = "");
 		void receiveManagementCommand();
+		
+		bool hasNgh() {return hasNeighborhood; }
+		bool hasAddress() {return validAddress; }
 	
 };
