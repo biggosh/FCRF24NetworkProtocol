@@ -6,6 +6,11 @@
 #define ANS_ADDR         0x04
 #define TRACE_ROUTE		 0x05
 
+#define ACK				 0x00
+#define DATA_ACK		 0x01
+#define DATA_NOACK		 0x02
+#define CMD				 0x03
+
 #define MaxAddressRequests 10
 
 class FCRF24Protocol
@@ -17,6 +22,7 @@ class FCRF24Protocol
 		RF24 *rf24;
 		bool validAddress;
 		bool hasNeighborhood;
+		byte fullAddress[5];
 		
 		char routeNextHop[255];
 		char routeKnownNode[255];
@@ -29,6 +35,7 @@ class FCRF24Protocol
 		inline char* getEmptyBuffer() { return new char[32](); }
 		void sendCommandGeneric(char* message);
 		
+		// Management methods
 		void sendRequestNghAntenna();
 		void sendRequestAddress();
 		void sendTraceRoute(uint8_t destinationAddress = 0);
@@ -39,12 +46,17 @@ class FCRF24Protocol
 		void receiveAnswerNghAntenna(char* command);
 		void receiveAnswerAddress(char* command);
 		
+		void forwardPacket(char* message);
+		
 	public:
 		FCRF24Protocol() {};
 		void init(String name);
 		uint8_t  dataAvailable();
 		void sendManagementCommand(unsigned char command, String payload = "");
 		void receiveManagementCommand();
+		
+		void sendPacket(uint8_t toAddress, char* data, bool ack, bool cmd);
+		void receivePacket(char* message);
 		
 		bool hasNgh() {return hasNeighborhood; }
 		bool hasAddress() {return validAddress; }

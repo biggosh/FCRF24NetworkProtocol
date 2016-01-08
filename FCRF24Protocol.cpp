@@ -6,6 +6,11 @@ void FCRF24Protocol::init(String name)
 	nodeAddress = 0;
 	validAddress = 0;
 	broadcastName = "\xFFNode";
+	fullAddress[0]=0x00;
+	fullAddress[1]='N';
+	fullAddress[2]='o';
+	fullAddress[3]='d';
+	fullAddress[4]='e';	
 	hasNeighborhood = false;
 	
 	for (int j=0; j<255; j++)
@@ -20,9 +25,9 @@ void FCRF24Protocol::init(String name)
 	rf24 = new RF24(7,8);
 	rf24->begin();
 	rf24->setAutoAck(1);
-	rf24->setRetries(5,15);
-	byte address[6] = "1Node";	
-	rf24->openReadingPipe(1, address);
+	rf24->setRetries(5,15);	
+	rf24->openReadingPipe(1, fullAddress);
+	byte address[6];
 	broadcastName.getBytes(address, 6);
 	rf24->openReadingPipe(2, address);
 	
@@ -306,6 +311,9 @@ void FCRF24Protocol::receiveAnswerAddress ( char* command )
 		{
 			nodeAddress = command[5];
 			validAddress = true;
+			fullAddress[0] = command[5];
+			rf24->closeReadingPipe(1);
+			rf24->openReadingPipe(1, fullAddress);
 			Serial.print("Address: ");
 			Serial.println(nodeAddress);
 		}
@@ -346,6 +354,83 @@ void FCRF24Protocol::receiveTraceRoute ( char* command )
 }
 
 
+/*
+ * 
+ * ********************** DATA TRASMISSION
+ * 
+ */
+
+/*
+ * Byte 0: message type
+ * Byte 1: from address
+ * Byte 2: to address
+ * Byte 3: reserved
+ * byte 4-31: data
+ */
+
+void FCRF24Protocol::sendPacket ( uint8_t toAddress, char* data, bool ack, bool cmd )
+{
+	char* message = getEmptyBuffer();
+	fullAddress[0] = gwNextHopNode;
+	rf24->openWritingPipe(fullAddress);
+	fullAddress[0] = nodeAddress;
+	// Data packet type
+	if (cmd) message[0] = CMD;
+	if (ack) message[0] = DATA_ACK;
+	if (!ack & !cmd) message[0] = DATA_NOACK;
+	
+	// Data from
+	message[1] = nodeAddress;
+	message[2] = toAddress;
+	message[3] = 0x00;
+	for (int i=0;i<28;i++)
+		message[4+i] = data[i];
+	rf24->stopListening();
+	rf24->write(message, 32, 1);
+	rf24->startListening();	
+	
+	delete message;
+}
+
+void FCRF24Protocol::forwardPacket ( char* message )
+{
+	fullAddress[0] = gwNextHopNode;
+	rf24->openWritingPipe(fullAddress);
+	fullAddress[0] = nodeAddress;
+	rf24->stopListening();
+	rf24->write(message, 32, 1);
+	rf24->startListening();	
+}
+
+
+void FCRF24Protocol::receivePacket (char* data)
+{
+	/*
+	 * If to address is the one of this node the menage address
+	 * else forward address to next hop
+	 */
+	
+	char* message = getEmptyBuffer();
+	rf24->read(message, 32);
+	message[32] = '\0';
+	
+	if (message[2]==nodeAddress)
+	{
+		Serial.print("Data: ");
+		for (int j=0;j<=28;j++)
+			Serial.print(message[4+j]);
+		Serial.println();
+		if (data != NULL)
+			for (int j=0;j<=28;j++)
+				data[j]=message[4+j];
+	}
+	else
+	{
+		forwardPacket(message);
+	}
+	
+	delete message;
+}
 
 
 // -------------------------------
