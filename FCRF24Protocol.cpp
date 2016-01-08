@@ -11,6 +11,7 @@ void FCRF24Protocol::init(String name)
 	fullAddress[2]='o';
 	fullAddress[3]='d';
 	fullAddress[4]='e';	
+	fullAddress[5]='\0';
 	hasNeighborhood = false;
 	
 	for (int j=0; j<255; j++)
@@ -113,6 +114,7 @@ void FCRF24Protocol::sendRequestAddress()
 		command[32-l+j] = nodeName[j];
 	command[0] = REQ_ADDR;
 	long randomId = random();
+	lastRandomId = randomId;
 	command[1]= (uint8_t)((randomId >> 24) & 0xFF);
 	command[2]= (uint8_t)((randomId >> 16) & 0xFF);
 	command[3]= (uint8_t)((randomId >> 8) & 0xFF);
@@ -320,9 +322,9 @@ void FCRF24Protocol::receiveAnswerAddress ( char* command )
 	}
 	else
 	{
-		if (nodeAddress > 0)	// GW never forward request/answer address
+		long randomId = (command[1] << 24) + (command[2] << 16) + (command[3] << 8) + command[4];
+		if (nodeAddress > 0 && lastRandomId != randomId)	// GW never forward request/answer address and this node message
 		{
-			long randomId = (command[1] << 24) + (command[2] << 16) + (command[3] << 8) + command[4];
 			bool found = false;
 			int i = 0;
 			while (i < MaxAddressRequests && !found)

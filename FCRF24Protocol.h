@@ -22,7 +22,7 @@ class FCRF24Protocol
 		RF24 *rf24;
 		bool validAddress;
 		bool hasNeighborhood;
-		byte fullAddress[5];
+		byte fullAddress[6];
 		
 		char routeNextHop[255];
 		char routeKnownNode[255];
@@ -30,7 +30,8 @@ class FCRF24Protocol
 		byte gwNextHopNode;
 		byte gwNHopsToGw;
 		long randomIDs[MaxAddressRequests];	// Max MaxAddressRequests requests per time
-	
+		long lastRandomId;
+		
 		byte* String2Byte(String stringa);
 		inline char* getEmptyBuffer() { return new char[32](); }
 		void sendCommandGeneric(char* message);
