@@ -1,6 +1,6 @@
 #include "FCRF24Protocol.h"
 
-void FCRF24Protocol::init(String name)
+void FCRF24Protocol::init(String name, int ce, int csn)
 {
 	nodeName = name;
 	nodeAddress = 0;
@@ -23,7 +23,7 @@ void FCRF24Protocol::init(String name)
 	gwNextHopNode = 0;
 	gwNHopsToGw = 0;
 	
-	rf24 = new RF24(7,8);
+	rf24 = new RF24(ce,csn);
 	rf24->begin();
 	rf24->setAutoAck(1);
 	rf24->setRetries(5,15);	

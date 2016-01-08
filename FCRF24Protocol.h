@@ -51,7 +51,7 @@ class FCRF24Protocol
 		
 	public:
 		FCRF24Protocol() {};
-		void init(String name);
+		void init(String name, int ce = 7, int csn = 8);
 		uint8_t  dataAvailable();
 		void sendManagementCommand(unsigned char command, String payload = "");
 		void receiveManagementCommand();
